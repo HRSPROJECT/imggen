@@ -1,115 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Freepik AI Image Generator</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    input, button {
-      padding: 12px;
-      margin: 8px;
-      width: 300px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background-color: #007BFF;
-      color: white;
-      cursor: pointer;
-      border: none;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    img {
-      margin-top: 20px;
-      max-width: 100%;
-      border-radius: 10px;
-    }
-    #loader {
-      display: none;
-      font-size: 18px;
-      color: #555;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Generator Without Watermark</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        nav {
+            background-color: #007BFF;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        canvas {
+            margin-top: 1rem;
+            max-width: 100%;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Freepik AI Image Generator</h1>
-  <input type="text" id="prompt" placeholder="Enter your prompt" />
-  <button onclick="generateImage()">Generate Image</button>
-  <div id="loader">Generating image, please wait...</div>
-  <img id="generatedImage" style="display:none;" />
+    <nav>
+        <a href="#image-generator">Image Generator</a>
+    </nav>
 
-  <script>
-    async function generateImage() {
-      const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) {
-        alert('Please enter a prompt!');
-        return;
-      }
+    <div class="container" id="image-generator">
+        <h1>Image Generator Without Watermark</h1>
+        <input type="text" id="imagePrompt" placeholder="Enter prompt for the image">
+        <button onclick="generateImage()">Generate Image</button>
+        <canvas id="imageCanvas" style="display:none;"></canvas>
+    </div>
 
-      const loader = document.getElementById('loader');
-      const imgElement = document.getElementById('generatedImage');
-      imgElement.style.display = 'none';
-      loader.style.display = 'block';
+    <script>
+        async function generateImage() {
+            const prompt = document.getElementById('imagePrompt').value;
+            if (!prompt) {
+                alert("Please enter a prompt for the image.");
+                return;
+            }
 
-      const apiKey = 'FPSXda94bed701dc4c4394ca024c0e1d6a59';  // Replace with your Freepik API key
-      const url = 'https://api.freepik.com/v1/ai/text-to-image';
+            const url = https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)};
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const img = new Image();
 
-      const requestData = {
-        prompt: prompt,
-        negative_prompt: "b&w, earth, cartoon, ugly",
-        guidance_scale: 2,
-        seed: 42,
-        num_images: 1,
-        image: {
-          size: "square"
-        },
-        styling: {
-          style: "anime",
-          color: "pastel",
-          lightning: "warm",
-          framing: "portrait"
+                    img.onload = function () {
+                        const canvas = document.getElementById('imageCanvas');
+                        const ctx = canvas.getContext('2d');
+
+                        // Set canvas dimensions to the image size, minus the watermark area
+                        const cropHeight = img.height - 50; // Adjust based on watermark height
+                        canvas.width = img.width;
+                        canvas.height = cropHeight;
+
+                        // Draw the image without the watermark area
+                        ctx.drawImage(img, 0, 0, img.width, cropHeight, 0, 0, img.width, cropHeight);
+                        canvas.style.display = 'block';
+                    };
+
+                    img.src = URL.createObjectURL(blob);
+                } else {
+                    alert("Error generating image. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
         }
-      };
-
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-FPSXda94bed701dc4c4394ca024c0e1d6a59': apiKey
-          },
-          body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-          throw new Error('Image generation failed!');
-        }
-
-        const data = await response.json();
-        const imageUrl = data.images[0].url;  // Adjust based on actual API response
-        imgElement.src = imageUrl;
-        imgElement.style.display = 'block';
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to generate image: ' + error.message);
-      } finally {
-        loader.style.display = 'none';
-      }
-    }
-  </script>
+    </script>
 </body>
 </html>
